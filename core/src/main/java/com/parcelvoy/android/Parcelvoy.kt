@@ -222,21 +222,26 @@ open class Parcelvoy protected constructor(
      * Returns a page of the current user's subscription preferences
      *
      * Only public subscriptions are returned, along with the current user's
-     * state for each one. The user must be identified before calling this.
+     * state for each one. The user must be identified before calling this;
+     * otherwise a failed [Result] is returned.
      */
-    suspend fun getSubscriptions(): Result<Page<SubscriptionPreference>> =
-        network.get<Page<SubscriptionPreference>>(
+    suspend fun getSubscriptions(): Result<Page<SubscriptionPreference>> {
+        val externalId = this.externalId
+            ?: return Result.failure(IllegalStateException(NOT_IDENTIFIED_MESSAGE))
+        return network.get<Page<SubscriptionPreference>>(
             path = "subscriptions",
             user = Alias(
                 anonymousId = getOrAndOrSetAnonymousId(),
                 externalId = externalId
             ),
         )
+    }
 
     /**
-     * Update a single subscription preference for the current user
+     * Set the state of a single subscription preference for the current user
      *
-     * Flips one public subscription between subscribed and unsubscribed.
+     * Sets one public subscription to an explicit [state]. The user must be
+     * identified before calling this; otherwise a failed [Result] is returned.
      *
      * @param subscriptionId The identifier of the subscription to update
      * @param state The desired subscription state
@@ -244,8 +249,10 @@ open class Parcelvoy protected constructor(
     suspend fun setSubscription(
         subscriptionId: Long,
         state: SubscriptionState
-    ): Result<Unit> =
-        network.put<Unit>(
+    ): Result<Unit> {
+        val externalId = this.externalId
+            ?: return Result.failure(IllegalStateException(NOT_IDENTIFIED_MESSAGE))
+        return network.put<Unit>(
             path = "subscriptions/$subscriptionId",
             body = SubscriptionUpdate(
                 anonymousId = getOrAndOrSetAnonymousId(),
@@ -253,6 +260,7 @@ open class Parcelvoy protected constructor(
                 state = state
             )
         )
+    }
 
     /**
      * Subscribe the current user to a single subscription
@@ -514,6 +522,8 @@ open class Parcelvoy protected constructor(
 
     companion object {
         private const val LOG_TAG = "Parcelvoy"
+        private const val NOT_IDENTIFIED_MESSAGE =
+            "A user must be identified (via identify) before managing subscription preferences"
 
         /**
          * Initialize the library with the required API key and URL endpoint

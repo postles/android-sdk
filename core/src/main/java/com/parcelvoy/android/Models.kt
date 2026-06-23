@@ -86,6 +86,7 @@ enum class SubscriptionState {
 }
 
 data class SubscriptionPreference(
+    @SerializedName("subscription_id")
     val subscriptionId: Long,
     val name: String,
     val channel: String,

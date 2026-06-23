@@ -62,21 +62,23 @@ analytics.register(
 ```
 
 ### Subscription Preferences
-Read and modify a user's subscription preferences directly through SDK methods — no UI is included, so you can build your own preference center (or manage preferences programmatically). `getSubscriptions` returns the project's public subscriptions along with the current user's state for each, and `setSubscription` (or the `subscribe`/`unsubscribe` helpers) flips a single subscription. The user must be identified first (via `identify`). All of these are `suspend` functions and return a `Result`.
+Read and modify a user's subscription preferences directly through SDK methods — no UI is included, so you can build your own preference center (or manage preferences programmatically). `getSubscriptions` returns the project's public subscriptions along with the current user's state for each. Use `subscribe`/`unsubscribe` to toggle a single subscription, or `setSubscription` to set an explicit state. The user must be identified first (via `identify`). All of these are `suspend` functions (call them from a coroutine) and return a `Result`.
 ```kotlin
-// Read the current preferences
-analytics.getSubscriptions().onSuccess { page ->
-    page.results.forEach { preference ->
-        Log.d("Postles", "${preference.name} (${preference.channel}): ${preference.state}")
+lifecycleScope.launch {
+    // Read the current preferences
+    analytics.getSubscriptions().onSuccess { page ->
+        page.results.forEach { preference ->
+            Log.d("Postles", "${preference.name} (${preference.channel}): ${preference.state}")
+        }
     }
+
+    // Toggle a preference
+    analytics.unsubscribe(subscriptionId = 123)
+    analytics.subscribe(subscriptionId = 123)
+
+    // Or set an explicit state
+    analytics.setSubscription(subscriptionId = 123, state = SubscriptionState.UNSUBSCRIBED)
 }
-
-// Update a preference
-analytics.unsubscribe(subscriptionId = 123)
-analytics.subscribe(subscriptionId = 123)
-
-// Or set an explicit state
-analytics.setSubscription(subscriptionId = 123, state = SubscriptionState.UNSUBSCRIBED)
 ```
 
 ### Deeplink Navigation
