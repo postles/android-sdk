@@ -219,6 +219,66 @@ open class Parcelvoy protected constructor(
         )
 
     /**
+     * Returns a page of the current user's subscription preferences
+     *
+     * Only public subscriptions are returned, along with the current user's
+     * state for each one. The user must be identified before calling this;
+     * otherwise a failed [Result] is returned.
+     */
+    suspend fun getSubscriptions(): Result<Page<SubscriptionPreference>> {
+        val externalId = this.externalId
+            ?: return Result.failure(IllegalStateException(NOT_IDENTIFIED_MESSAGE))
+        return network.get<Page<SubscriptionPreference>>(
+            path = "subscriptions",
+            user = Alias(
+                anonymousId = getOrAndOrSetAnonymousId(),
+                externalId = externalId
+            ),
+        )
+    }
+
+    /**
+     * Set the state of a single subscription preference for the current user
+     *
+     * Sets one public subscription to an explicit [state]. The user must be
+     * identified before calling this; otherwise a failed [Result] is returned.
+     *
+     * @param subscriptionId The identifier of the subscription to update
+     * @param state The desired subscription state
+     */
+    suspend fun setSubscription(
+        subscriptionId: Long,
+        state: SubscriptionState
+    ): Result<Unit> {
+        val externalId = this.externalId
+            ?: return Result.failure(IllegalStateException(NOT_IDENTIFIED_MESSAGE))
+        return network.put<Unit>(
+            path = "subscriptions/$subscriptionId",
+            body = SubscriptionUpdate(
+                anonymousId = getOrAndOrSetAnonymousId(),
+                externalId = externalId,
+                state = state
+            )
+        )
+    }
+
+    /**
+     * Subscribe the current user to a single subscription
+     *
+     * @param subscriptionId The identifier of the subscription to subscribe to
+     */
+    suspend fun subscribe(subscriptionId: Long): Result<Unit> =
+        setSubscription(subscriptionId, SubscriptionState.SUBSCRIBED)
+
+    /**
+     * Unsubscribe the current user from a single subscription
+     *
+     * @param subscriptionId The identifier of the subscription to unsubscribe from
+     */
+    suspend fun unsubscribe(subscriptionId: Long): Result<Unit> =
+        setSubscription(subscriptionId, SubscriptionState.UNSUBSCRIBED)
+
+    /**
      * Fetches the latest notifications and processes them based on the InAppDelegate's response.
      */
     fun showLatestNotification() {
@@ -462,6 +522,8 @@ open class Parcelvoy protected constructor(
 
     companion object {
         private const val LOG_TAG = "Parcelvoy"
+        private const val NOT_IDENTIFIED_MESSAGE =
+            "A user must be identified (via identify) before managing subscription preferences"
 
         /**
          * Initialize the library with the required API key and URL endpoint
