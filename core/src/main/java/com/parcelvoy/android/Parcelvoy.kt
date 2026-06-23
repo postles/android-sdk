@@ -219,6 +219,58 @@ open class Parcelvoy protected constructor(
         )
 
     /**
+     * Returns a page of the current user's subscription preferences
+     *
+     * Only public subscriptions are returned, along with the current user's
+     * state for each one. The user must be identified before calling this.
+     */
+    suspend fun getSubscriptions(): Result<Page<SubscriptionPreference>> =
+        network.get<Page<SubscriptionPreference>>(
+            path = "subscriptions",
+            user = Alias(
+                anonymousId = getOrAndOrSetAnonymousId(),
+                externalId = externalId
+            ),
+        )
+
+    /**
+     * Update a single subscription preference for the current user
+     *
+     * Flips one public subscription between subscribed and unsubscribed.
+     *
+     * @param subscriptionId The identifier of the subscription to update
+     * @param state The desired subscription state
+     */
+    suspend fun setSubscription(
+        subscriptionId: Long,
+        state: SubscriptionState
+    ): Result<Unit> =
+        network.put<Unit>(
+            path = "subscriptions/$subscriptionId",
+            body = SubscriptionUpdate(
+                anonymousId = getOrAndOrSetAnonymousId(),
+                externalId = externalId,
+                state = state
+            )
+        )
+
+    /**
+     * Subscribe the current user to a single subscription
+     *
+     * @param subscriptionId The identifier of the subscription to subscribe to
+     */
+    suspend fun subscribe(subscriptionId: Long): Result<Unit> =
+        setSubscription(subscriptionId, SubscriptionState.SUBSCRIBED)
+
+    /**
+     * Unsubscribe the current user from a single subscription
+     *
+     * @param subscriptionId The identifier of the subscription to unsubscribe from
+     */
+    suspend fun unsubscribe(subscriptionId: Long): Result<Unit> =
+        setSubscription(subscriptionId, SubscriptionState.UNSUBSCRIBED)
+
+    /**
      * Fetches the latest notifications and processes them based on the InAppDelegate's response.
      */
     fun showLatestNotification() {
