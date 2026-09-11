@@ -454,6 +454,14 @@ open class Parcelvoy protected constructor(
         if (isCheckMessagePush(bundle)) showLatestNotification()
     }
 
+    /** Record a push open from its data payload; call on tap, not on receipt. */
+    fun pushOpened(bundle: Bundle) {
+        val openUrl = bundle.getString(Constants.OPEN_URL_KEY) ?: return
+        libraryScope.launch {
+            network.getUrl<Unit>(openUrl)
+        }
+    }
+
     /**
      * Helper function to open a URL using an Intent.
      */

@@ -51,6 +51,7 @@ class MyFirebaseService : FirebaseMessagingService() {
         }
 
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
+            putExtras(bundle)
             putExtra("push_notification", true)
         }
         val pi = PendingIntent.getActivity(applicationContext, 101, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT)

@@ -29,6 +29,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
 
+        if (savedInstanceState == null) {
+            intent.extras?.let { analytics.pushOpened(it) }
+        }
+
         lifecycleScope.launch {
             analytics.identify(
                 id = UUID.randomUUID().toString(),
@@ -91,6 +95,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+
+        intent.extras?.let { analytics.pushOpened(it) }
 
         val uri = intent.data
         Log.e(LOG_TAG, "onNewIntent | uri: $uri")
