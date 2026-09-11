@@ -454,11 +454,7 @@ open class Parcelvoy protected constructor(
         if (isCheckMessagePush(bundle)) showLatestNotification()
     }
 
-    /**
-     * Record that a push notification was opened, from its data payload.
-     *
-     * @param bundle The payload from the push notification.
-     */
+    /** Record a push open from its data payload; call on tap, not on receipt. */
     fun pushOpened(bundle: Bundle) {
         val openUrl = bundle.getString(Constants.OPEN_URL_KEY) ?: return
         libraryScope.launch {

@@ -82,9 +82,26 @@ lifecycleScope.launch {
 ```
 
 ### Push Notification Opens
-Notifications sent through the send API carry a signed open URL in their data payload. Carry that payload through to the activity your notification opens and pass it to `pushOpened`, and Parcelvoy records that the message was opened. Payloads without the key are ignored.
+Notifications sent through the send API carry a signed open URL in their data payload. Pass that payload to `pushOpened` when the user taps the notification and Parcelvoy records that the message was opened. Payloads without the key are ignored.
+
+First put the push data on the intent your notification opens, so the activity can read it back:
 
 ```kotlin
+val intent = Intent(applicationContext, MainActivity::class.java).putExtras(bundle)
+val pendingIntent = PendingIntent.getActivity(
+    applicationContext, 101, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
+)
+```
+
+Then read it in both places a tap can arrive. A tap that launches the app from cold goes to `onCreate`; a tap while it is already running goes to `onNewIntent`. Handle only one and the more common case records nothing:
+
+```kotlin
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+
+    intent.extras?.let { analytics.pushOpened(it) }
+}
+
 override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
 
