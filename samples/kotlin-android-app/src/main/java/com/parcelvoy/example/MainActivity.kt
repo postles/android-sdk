@@ -29,7 +29,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
 
-        intent.extras?.let { analytics.pushOpened(it) }
+        if (savedInstanceState == null) {
+            intent.extras?.let { analytics.pushOpened(it) }
+        }
 
         lifecycleScope.launch {
             analytics.identify(

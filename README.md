@@ -99,7 +99,9 @@ Then read it in both places a tap can arrive. A tap that launches the app from c
 override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    intent.extras?.let { analytics.pushOpened(it) }
+    if (savedInstanceState == null) {
+        intent.extras?.let { analytics.pushOpened(it) }
+    }
 }
 
 override fun onNewIntent(intent: Intent) {
