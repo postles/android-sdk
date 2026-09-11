@@ -455,6 +455,18 @@ open class Parcelvoy protected constructor(
     }
 
     /**
+     * Record that a push notification was opened, from its data payload.
+     *
+     * @param bundle The payload from the push notification.
+     */
+    fun pushOpened(bundle: Bundle) {
+        val openUrl = bundle.getString(Constants.OPEN_URL_KEY) ?: return
+        libraryScope.launch {
+            network.getUrl<Unit>(openUrl)
+        }
+    }
+
+    /**
      * Helper function to open a URL using an Intent.
      */
     private fun openUrl(url: Uri) {

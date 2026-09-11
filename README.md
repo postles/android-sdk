@@ -81,6 +81,17 @@ lifecycleScope.launch {
 }
 ```
 
+### Push Notification Opens
+Notifications sent through the send API carry a signed open URL in their data payload. Carry that payload through to the activity your notification opens and pass it to `pushOpened`, and Parcelvoy records that the message was opened. Payloads without the key are ignored.
+
+```kotlin
+override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+
+    intent.extras?.let { analytics.pushOpened(it) }
+}
+```
+
 ### Deeplink Navigation
 To allow for click tracking links in emails can be click-wrapped in a Parcelvoy url that then needs to be unwrapped for navigation purposes. For information on setting this up on your platform, please see our [deeplink documentation](https://docs.parcelvoy.com/advanced/deeplinking).
 

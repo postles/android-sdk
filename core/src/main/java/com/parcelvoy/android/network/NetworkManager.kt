@@ -61,6 +61,14 @@ class NetworkManager(
         return execute(request)
     }
 
+    internal suspend inline fun <reified T> getUrl(url: String): Result<T> {
+        val request = Request.Builder()
+            .url(URL(url))
+            .get()
+            .build()
+        return execute(request)
+    }
+
     internal suspend inline fun <reified T> put(
         path: String,
         body: Any,
