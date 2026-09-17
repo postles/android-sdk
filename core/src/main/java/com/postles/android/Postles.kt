@@ -218,65 +218,92 @@ open class Postles protected constructor(
             ),
         )
 
-    /**
-     * Returns a page of the current user's subscription preferences
-     *
-     * Only public subscriptions are returned, along with the current user's
-     * state for each one. The user must be identified before calling this;
-     * otherwise a failed [Result] is returned.
-     */
-    suspend fun getSubscriptions(): Result<Page<SubscriptionPreference>> {
+    suspend fun getTopics(): Result<Page<Topic>> {
         val externalId = this.externalId
             ?: return Result.failure(IllegalStateException(NOT_IDENTIFIED_MESSAGE))
-        return network.get<Page<SubscriptionPreference>>(
+        return network.get<Page<Topic>>(
             path = "subscriptions",
-            user = Alias(
-                anonymousId = getOrAndOrSetAnonymousId(),
-                externalId = externalId
-            ),
+            user = currentUser(externalId),
         )
     }
 
-    /**
-     * Set the state of a single subscription preference for the current user
-     *
-     * Sets one public subscription to an explicit [state]. The user must be
-     * identified before calling this; otherwise a failed [Result] is returned.
-     *
-     * @param subscriptionId The identifier of the subscription to update
-     * @param state The desired subscription state
-     */
-    suspend fun setSubscription(
-        subscriptionId: Long,
-        state: SubscriptionState
-    ): Result<Unit> {
+    suspend fun getTopicChannels(): Result<List<TopicChannel>> {
         val externalId = this.externalId
             ?: return Result.failure(IllegalStateException(NOT_IDENTIFIED_MESSAGE))
+        return network.get<TopicChannelsResponse>(
+            path = "subscriptions/channels",
+            user = currentUser(externalId),
+        ).map { it.channels }
+    }
+
+    suspend fun setTopic(subscriptionId: Long, state: TopicState): Result<Unit> {
+        val externalId = this.externalId
+            ?: return Result.failure(IllegalStateException(NOT_IDENTIFIED_MESSAGE))
+        if (state == TopicState.NOT_OPTED_IN) {
+            return Result.failure(
+                IllegalArgumentException("Topic updates only accept SUBSCRIBED or UNSUBSCRIBED")
+            )
+        }
         return network.put<Unit>(
             path = "subscriptions/$subscriptionId",
-            body = SubscriptionUpdate(
-                anonymousId = getOrAndOrSetAnonymousId(),
-                externalId = externalId,
-                state = state
-            )
+            body = mapOf("state" to state),
+            user = currentUser(externalId)
         )
     }
 
-    /**
-     * Subscribe the current user to a single subscription
-     *
-     * @param subscriptionId The identifier of the subscription to subscribe to
-     */
-    suspend fun subscribe(subscriptionId: Long): Result<Unit> =
-        setSubscription(subscriptionId, SubscriptionState.SUBSCRIBED)
+    suspend fun setTopics(updates: List<TopicUpdate>): Result<Unit> {
+        val externalId = this.externalId
+            ?: return Result.failure(IllegalStateException(NOT_IDENTIFIED_MESSAGE))
+        if (updates.size > 100) {
+            return Result.failure(
+                IllegalArgumentException("A topic update can contain at most 100 entries")
+            )
+        }
+        return network.put(
+            path = "subscriptions",
+            body = updates,
+            user = currentUser(externalId)
+        )
+    }
 
-    /**
-     * Unsubscribe the current user from a single subscription
-     *
-     * @param subscriptionId The identifier of the subscription to unsubscribe from
-     */
-    suspend fun unsubscribe(subscriptionId: Long): Result<Unit> =
-        setSubscription(subscriptionId, SubscriptionState.UNSUBSCRIBED)
+    suspend fun subscribeTopic(subscriptionId: Long): Result<Unit> =
+        setTopic(subscriptionId, TopicState.SUBSCRIBED)
+
+    suspend fun unsubscribeTopic(subscriptionId: Long): Result<Unit> =
+        setTopic(subscriptionId, TopicState.UNSUBSCRIBED)
+
+    @Deprecated(
+        message = "Use getTopics. NOT_OPTED_IN is mapped to SubscriptionState.UNSUBSCRIBED.",
+        replaceWith = ReplaceWith("getTopics()")
+    )
+    suspend fun getSubscriptions(): Result<Page<SubscriptionPreference>> =
+        getTopics().map { page ->
+            Page(
+                results = page.results.map { it.toSubscriptionPreference() },
+                nextCursor = page.nextCursor
+            )
+        }
+
+    @Deprecated(
+        message = "Use setTopic. SubscriptionState only represents subscribed and unsubscribed.",
+        replaceWith = ReplaceWith(
+            "setTopic(subscriptionId, if (state == SubscriptionState.SUBSCRIBED) TopicState.SUBSCRIBED else TopicState.UNSUBSCRIBED)"
+        )
+    )
+    suspend fun setSubscription(subscriptionId: Long, state: SubscriptionState): Result<Unit> =
+        setTopic(subscriptionId, state.toTopicState())
+
+    @Deprecated(
+        message = "Use subscribeTopic.",
+        replaceWith = ReplaceWith("subscribeTopic(subscriptionId)")
+    )
+    suspend fun subscribe(subscriptionId: Long): Result<Unit> = subscribeTopic(subscriptionId)
+
+    @Deprecated(
+        message = "Use unsubscribeTopic.",
+        replaceWith = ReplaceWith("unsubscribeTopic(subscriptionId)")
+    )
+    suspend fun unsubscribe(subscriptionId: Long): Result<Unit> = unsubscribeTopic(subscriptionId)
 
     /**
      * Fetches the latest notifications and processes them based on the InAppDelegate's response.
@@ -520,9 +547,15 @@ open class Postles protected constructor(
             preferences.anonymousId = this
         }
 
+    private fun currentUser(externalId: String): Alias = Alias(
+        anonymousId = getOrAndOrSetAnonymousId(),
+        externalId = externalId
+    )
+
     companion object {
         private const val LOG_TAG = "Postles"
         private const val NOT_IDENTIFIED_MESSAGE =
+            "A user must be identified (via identify) before managing topic preferences"
 
         /**
          * Initialize the library with the required API key and URL endpoint
@@ -560,4 +593,19 @@ open class Postles protected constructor(
             isPostlesPush(extras) &&
                 extras?.getString(Constants.IN_APP_CHECK_MESSAGE_KEY)?.toBoolean() ?: (extras?.getBoolean(Constants.IN_APP_CHECK_MESSAGE_KEY) == true)
     }
+}
+
+internal fun Topic.toSubscriptionPreference(): SubscriptionPreference = SubscriptionPreference(
+    subscriptionId = subscriptionId,
+    name = name,
+    channel = channel,
+    state = when (state) {
+        TopicState.SUBSCRIBED -> SubscriptionState.SUBSCRIBED
+        TopicState.UNSUBSCRIBED, TopicState.NOT_OPTED_IN -> SubscriptionState.UNSUBSCRIBED
+    }
+)
+
+private fun SubscriptionState.toTopicState(): TopicState = when (this) {
+    SubscriptionState.SUBSCRIBED -> TopicState.SUBSCRIBED
+    SubscriptionState.UNSUBSCRIBED -> TopicState.UNSUBSCRIBED
 }

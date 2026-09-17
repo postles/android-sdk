@@ -3,11 +3,13 @@ package com.postles.android.network
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import com.postles.android.Alias
 import com.postles.android.Config
 import com.postles.android.NotificationContent
 import com.postles.android.PostlesNotification
+import com.postles.android.PostlesException
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -64,6 +66,7 @@ class NetworkManager(
     internal suspend inline fun <reified T> put(
         path: String,
         body: Any,
+        user: Alias? = null,
         useBaseUri: Boolean = true,
     ): Result<T> {
         val url = if (useBaseUri) URL("${config.urlEndpoint}/api/client/$path") else URL(path)
@@ -71,6 +74,12 @@ class NetworkManager(
         val request = Request.Builder().url(url)
             .put(requestBody)
             .addHeaders(config)
+            .apply {
+                user?.let {
+                    addHeader("x-anonymous-id", it.anonymousId)
+                    it.externalId?.let { externalId -> addHeader("x-external-id", externalId) }
+                }
+            }
             .build()
         return execute(request)
     }
@@ -98,12 +107,7 @@ class NetworkManager(
         try {
             val response = client.newCall(request).executeAsync()
             if (!response.isSuccessful) {
-                return Result.failure(IOException("Invalid status code ${response.code}, body: ${response.body.string()}"))
-            }
-            val isValid = (200 until 299).contains(response.code)
-
-            if (!isValid) {
-                return Result.failure(Exception("Invalid status code ${response.code}"))
+                return Result.failure(parseError(response.code, response.body.string()))
             }
             val typeToken = object : TypeToken<T>() {}
 
@@ -117,5 +121,13 @@ class NetworkManager(
         } catch (e: IOException) {
             return Result.failure(e)
         }
+    }
+
+    internal fun parseError(status: Int, body: String): PostlesException {
+        val error = runCatching { JsonParser.parseString(body).asJsonObject }.getOrNull()
+        val message = error?.get("error")?.takeUnless { it.isJsonNull }?.asString
+            ?: "Invalid status code $status"
+        val code = error?.get("code")?.takeUnless { it.isJsonNull }?.asInt
+        return PostlesException(status, code, message)
     }
 }

@@ -2,12 +2,17 @@ package com.postles.android
 
 import android.os.Build
 import android.os.Parcelable
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
 import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
 import com.postles.android.network.NotificationContentDeserializer
 import kotlinx.parcelize.Parcelize
 import org.json.JSONException
 import org.json.JSONObject
+import java.io.IOException
+import java.lang.reflect.Type
 import java.util.Date
 
 data class Config(
@@ -77,6 +82,90 @@ data class Page<T>(
     val nextCursor: String?
 )
 
+enum class TopicState {
+    @SerializedName("subscribed")
+    SUBSCRIBED,
+
+    @SerializedName("unsubscribed")
+    UNSUBSCRIBED,
+
+    @SerializedName("not_opted_in")
+    NOT_OPTED_IN
+}
+
+enum class TopicKind {
+    @SerializedName("channel")
+    CHANNEL,
+
+    @SerializedName("topic")
+    TOPIC
+}
+
+@JsonAdapter(TopicDeserializer::class)
+data class Topic(
+    @SerializedName("subscription_id")
+    val subscriptionId: Long,
+    val name: String,
+    val channel: String,
+    val kind: TopicKind = TopicKind.TOPIC,
+    @SerializedName("is_opt_in")
+    val isOptIn: Boolean = false,
+    val state: TopicState
+)
+
+class TopicDeserializer : JsonDeserializer<Topic> {
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Topic {
+        val value = json.asJsonObject
+        return Topic(
+            subscriptionId = value.get("subscription_id").asLong,
+            name = value.get("name").asString,
+            channel = value.get("channel").asString,
+            kind = value.get("kind")?.let { context.deserialize(it, TopicKind::class.java) } ?: TopicKind.TOPIC,
+            isOptIn = value.get("is_opt_in")?.asBoolean ?: false,
+            state = context.deserialize(value.get("state"), TopicState::class.java)
+        )
+    }
+}
+
+data class TopicChannel(
+    val channel: String,
+    val label: String,
+    val master: Topic?,
+    val topics: List<Topic>,
+    val paused: Boolean,
+    val canResubscribe: Boolean,
+    val resubscribeTextNumber: String?
+)
+
+data class TopicUpdate(
+    @SerializedName("subscription_id")
+    val subscriptionId: Long,
+    val state: TopicState
+) {
+    init {
+        require(state != TopicState.NOT_OPTED_IN) {
+            "Topic updates only accept SUBSCRIBED or UNSUBSCRIBED"
+        }
+    }
+}
+
+class PostlesException(
+    val status: Int,
+    val code: Int?,
+    override val message: String
+) : IOException(message) {
+    val isTopicResubscribeLocked: Boolean
+        get() = code == 4004
+}
+
+internal data class TopicChannelsResponse(
+    val channels: List<TopicChannel>
+)
+
+@Deprecated(
+    message = "Use TopicState. NOT_OPTED_IN is mapped to UNSUBSCRIBED by the deprecated APIs.",
+    replaceWith = ReplaceWith("TopicState")
+)
 enum class SubscriptionState {
     @SerializedName("subscribed")
     SUBSCRIBED,
@@ -85,6 +174,10 @@ enum class SubscriptionState {
     UNSUBSCRIBED
 }
 
+@Deprecated(
+    message = "Use Topic. NOT_OPTED_IN is mapped to SubscriptionState.UNSUBSCRIBED by the deprecated APIs.",
+    replaceWith = ReplaceWith("Topic")
+)
 data class SubscriptionPreference(
     @SerializedName("subscription_id")
     val subscriptionId: Long,
@@ -93,6 +186,10 @@ data class SubscriptionPreference(
     val state: SubscriptionState
 )
 
+@Deprecated(
+    message = "Use TopicUpdate. Topic identity is sent in request headers.",
+    replaceWith = ReplaceWith("TopicUpdate(subscriptionId = TODO(), state = TopicState.UNSUBSCRIBED)")
+)
 data class SubscriptionUpdate(
     val anonymousId: String,
     val externalId: String?,
