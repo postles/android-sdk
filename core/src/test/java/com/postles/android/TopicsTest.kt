@@ -94,6 +94,16 @@ class TopicsTest {
     }
 
     @Test
+    fun mapsNotOptedInUpdatesToUnsubscribed() {
+        val update = TopicUpdate(13, TopicState.NOT_OPTED_IN)
+
+        assertEquals(
+            """{"subscription_id":13,"state":"unsubscribed"}""",
+            gson.toJson(update)
+        )
+    }
+
+    @Test
     fun parsesLockedResubscribeError() {
         val network = NetworkManager(Config("public-key", "https://example.com"))
         val error = network.parseError(

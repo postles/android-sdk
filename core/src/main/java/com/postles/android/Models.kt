@@ -5,6 +5,9 @@ import android.os.Parcelable
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
 import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
 import com.postles.android.network.NotificationContentDeserializer
@@ -137,14 +140,21 @@ data class TopicChannel(
     val resubscribeTextNumber: String?
 )
 
+@JsonAdapter(TopicUpdateSerializer::class)
 data class TopicUpdate(
     @SerializedName("subscription_id")
     val subscriptionId: Long,
     val state: TopicState
-) {
-    init {
-        require(state != TopicState.NOT_OPTED_IN) {
-            "Topic updates only accept SUBSCRIBED or UNSUBSCRIBED"
+)
+
+class TopicUpdateSerializer : JsonSerializer<TopicUpdate> {
+    override fun serialize(source: TopicUpdate, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
+        return JsonObject().apply {
+            addProperty("subscription_id", source.subscriptionId)
+            addProperty(
+                "state",
+                if (source.state == TopicState.SUBSCRIBED) "subscribed" else "unsubscribed"
+            )
         }
     }
 }

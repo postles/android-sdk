@@ -61,8 +61,11 @@ The SDK provides the data and methods for building a preference center. It does 
 `getTopicChannels` groups each channel master with its topics. Show topic toggles when a channel has more than one topic or any opt-in topic. If a master is paused, keep its topic values disabled and do not submit them. A locked master can be turned off in the app, but the user must text START to turn it back on.
 
 ```kotlin
-lifecycleScope.launch {
+private var loadedChannels: List<TopicChannel> = emptyList()
+
+fun loadTopicPreferences() = lifecycleScope.launch {
     analytics.getTopicChannels().onSuccess { channels ->
+        loadedChannels = channels
         channels.forEach { channel ->
             val showTopics = channel.topics.size > 1 || channel.topics.any { it.isOptIn }
             val locked = channel.paused && !channel.canResubscribe
@@ -74,31 +77,50 @@ lifecycleScope.launch {
             }
 
             if (showTopics) {
-                showTopicToggles(channel.topics, enabled = !channel.paused)
+                showTopicToggles(
+                    topics = channel.topics,
+                    selected = { it.state == TopicState.SUBSCRIBED },
+                    enabled = !channel.paused
+                )
             }
         }
+    }.onFailure(::showError)
+}
 
-        val updates = channels.flatMap { channel ->
-            buildList {
-                channel.master
-                    ?.takeUnless { channel.paused && !channel.canResubscribe }
-                    ?.let { add(TopicUpdate(it.subscriptionId, selectedState(it))) }
+fun saveTopicPreferences() {
+    val updates = loadedChannels.flatMap { channel ->
+        buildList {
+            channel.master
+                ?.takeUnless { channel.paused && !channel.canResubscribe }
+                ?.let { add(TopicUpdate(it.subscriptionId, selectedState(it))) }
 
-                if (!channel.paused) {
-                    channel.topics.forEach {
-                        add(TopicUpdate(it.subscriptionId, selectedState(it)))
-                    }
+            if (!channel.paused) {
+                channel.topics.forEach {
+                    add(TopicUpdate(it.subscriptionId, selectedState(it)))
                 }
             }
         }
-        analytics.setTopics(updates)
-    }.onFailure { error ->
-        if (error is PostlesException && error.isTopicResubscribeLocked) {
-            showStartNotice(null)
+    }
+
+    lifecycleScope.launch {
+        analytics.setTopics(updates).onFailure { error ->
+            if (error is PostlesException && error.isTopicResubscribeLocked) {
+                val textNumber = loadedChannels
+                    .firstOrNull { it.channel == "text" }
+                    ?.resubscribeTextNumber
+                showStartNotice(textNumber)
+            } else {
+                showError(error)
+            }
         }
     }
 }
+
+fun selectedState(topic: Topic): TopicState =
+    if (isTopicSelected(topic)) TopicState.SUBSCRIBED else TopicState.UNSUBSCRIBED
 ```
+
+`NOT_OPTED_IN` means the user has not made a choice for an opt-in topic. Render it unchecked. When the user taps Save, map the control's current value to `SUBSCRIBED` or `UNSUBSCRIBED` as `selectedState` does above. If a `TopicUpdate` is constructed with `NOT_OPTED_IN`, it serializes that state as `UNSUBSCRIBED`, so the read-only state is never sent to the server.
 
 The previous names remain available as deprecated aliases:
 
