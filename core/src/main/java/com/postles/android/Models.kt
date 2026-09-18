@@ -77,6 +77,28 @@ data class Page<T>(
     val nextCursor: String?
 )
 
+enum class SubscriptionState {
+    @SerializedName("subscribed")
+    SUBSCRIBED,
+
+    @SerializedName("unsubscribed")
+    UNSUBSCRIBED
+}
+
+data class SubscriptionPreference(
+    @SerializedName("subscription_id")
+    val subscriptionId: Long,
+    val name: String,
+    val channel: String,
+    val state: SubscriptionState
+)
+
+data class SubscriptionUpdate(
+    val anonymousId: String,
+    val externalId: String?,
+    val state: SubscriptionState
+)
+
 enum class NotificationType {
     @SerializedName("banner")
     BANNER,

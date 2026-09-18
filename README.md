@@ -61,6 +61,26 @@ analytics.register(
 )
 ```
 
+### Subscription Preferences
+Read and modify a user's subscription preferences directly through SDK methods — no UI is included, so you can build your own preference center (or manage preferences programmatically). `getSubscriptions` returns the project's public subscriptions along with the current user's state for each. Use `subscribe`/`unsubscribe` to toggle a single subscription, or `setSubscription` to set an explicit state. The user must be identified first (via `identify`). All of these are `suspend` functions (call them from a coroutine) and return a `Result`.
+```kotlin
+lifecycleScope.launch {
+    // Read the current preferences
+    analytics.getSubscriptions().onSuccess { page ->
+        page.results.forEach { preference ->
+            Log.d("Postles", "${preference.name} (${preference.channel}): ${preference.state}")
+        }
+    }
+
+    // Toggle a preference
+    analytics.unsubscribe(subscriptionId = 123)
+    analytics.subscribe(subscriptionId = 123)
+
+    // Or set an explicit state
+    analytics.setSubscription(subscriptionId = 123, state = SubscriptionState.UNSUBSCRIBED)
+}
+```
+
 ### Deeplink Navigation
 To allow for click tracking links in emails can be click-wrapped in a Postles url that then needs to be unwrapped for navigation purposes. For information on setting this up on your platform, please see our [deeplink documentation](https://docs.postles.com/advanced/deeplinking).
 
