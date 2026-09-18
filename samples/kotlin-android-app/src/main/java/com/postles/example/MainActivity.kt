@@ -1,4 +1,4 @@
-package com.parcelvoy.example
+package com.postles.example
 
 import android.Manifest
 import android.app.NotificationManager
@@ -101,6 +101,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val LOG_TAG = "Parcelvoy"
+        private const val LOG_TAG = "Postles"
     }
 }

@@ -1,4 +1,4 @@
-package com.parcelvoy.android
+package com.postles.android
 
 import android.app.Activity
 import android.app.Application
@@ -13,7 +13,7 @@ import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import com.parcelvoy.android.network.NetworkManager
+import com.postles.android.network.NetworkManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import java.util.UUID
 
-open class Parcelvoy protected constructor(
+open class Postles protected constructor(
     app: Application,
     val config: Config
 ) {
@@ -99,7 +99,7 @@ open class Parcelvoy protected constructor(
      *
      * Call identify whenever user traits (attributes) change to make sure they are updated.
      *
-     * @param identity An object representing a Parcelvoy user identity
+     * @param identity An object representing a Postles user identity
      */
     suspend fun identify(identity: Identity) {
         if (externalId == null) {
@@ -157,7 +157,7 @@ open class Parcelvoy protected constructor(
     /**
      * Track an event
      *
-     * Send events for both anonymous and identified users to Parcelvoy to
+     * Send events for both anonymous and identified users to Postles to
      * trigger journeys or lists.
      *
      * @param event A string name of the event
@@ -209,9 +209,9 @@ open class Parcelvoy protected constructor(
     /**
      * Returns a page of notifications
      */
-    suspend fun getNotifications(): Result<Page<ParcelvoyNotification>> =
-        network.get<Page<ParcelvoyNotification>>(
-            path = "notifications",
+    suspend fun getNotifications(): Result<Page<PostlesNotification>> =
+        network.get<Page<PostlesNotification>>(
+            path = "notifications" ,
             user = Alias(
                 anonymousId = getOrAndOrSetAnonymousId(),
                 externalId = externalId
@@ -247,7 +247,7 @@ open class Parcelvoy protected constructor(
      * Shows an in-app notification as a DialogFragment.
      */
     suspend fun show(
-        notification: ParcelvoyNotification,
+        notification: PostlesNotification,
     ) {
         withContext(Dispatchers.Main) {
             val fragmentManager = currentActivity.get()?.supportFragmentManager
@@ -277,7 +277,7 @@ open class Parcelvoy protected constructor(
                     override fun handle(
                         action: InAppAction,
                         context: Map<String, Any>,
-                        notification: ParcelvoyNotification
+                        notification: PostlesNotification
                     ) {
                         if (action == InAppAction.DISMISS) {
                             libraryScope.launch {
@@ -291,7 +291,7 @@ open class Parcelvoy protected constructor(
                         inAppDelegate?.onError(error)
                     }
 
-                    override fun onNotificationShown(notification: ParcelvoyNotification) {
+                    override fun onNotificationShown(notification: PostlesNotification) {
                         inAppDelegate?.onNotificationShown(notification)
                     }
                 }
@@ -307,7 +307,7 @@ open class Parcelvoy protected constructor(
      * (consume function remains largely the same as before)
      */
     suspend fun consume(
-        notification: ParcelvoyNotification,
+        notification: PostlesNotification,
         thenShowNext: Boolean = true,
     ) {
         network.put<Unit>(
@@ -331,7 +331,7 @@ open class Parcelvoy protected constructor(
      */
     suspend fun dismiss(
         fragmentManager: FragmentManager,
-        notification: ParcelvoyNotification,
+        notification: PostlesNotification,
     ) {
         withContext(Dispatchers.Main) {
             val dialog = fragmentManager.findFragmentByTag(InAppDialogFragment.DIALOG_TAG) as? InAppDialogFragment
@@ -344,10 +344,10 @@ open class Parcelvoy protected constructor(
     /**
      * Handle deeplink navigation
      *
-     * To allow for click tracking, all emails are click-wrapped in a Parcelvoy url
+     * To allow for click tracking, all emails are click-wrapped in a Postles url
      * that then needs to be unwrapped for navigation purposes. This method
-     * checks to see if a given URL is a Parcelvoy URL and if so, unwraps the url,
-     * triggers the unwrapped URL and calls the Parcelvoy API to register that the
+     * checks to see if a given URL is a Postles URL and if so, unwraps the url,
+     * triggers the unwrapped URL and calls the Postles API to register that the
      * URL was executed.
      *
      * @param context The Android Context.
@@ -355,7 +355,7 @@ open class Parcelvoy protected constructor(
      * @return True if the link was handled, false otherwise.
      */
     fun handle(universalLink: Uri): Boolean {
-        if (!isParcelvoyDeepLink(universalLink)) {
+        if (!isPostlesDeepLink(universalLink)) {
             return false
         }
         val redirectUrl = universalLink.getQueryParameter("r")?.toUri() ?: return false
@@ -413,16 +413,16 @@ open class Parcelvoy protected constructor(
     /**
      * Handle deeplink navigation
      *
-     * To allow for click tracking, all emails are click-wrapped in a Parcelvoy url
+     * To allow for click tracking, all emails are click-wrapped in a Postles url
      * that then needs to be unwrapped for navigation purposes. This method
-     * checks to see if a given URL is a Parcelvoy URL and if so, unwraps the url,
-     * triggers the unwrapped URL and calls the Parcelvoy API to register that the
+     * checks to see if a given URL is a Postles URL and if so, unwraps the url,
+     * triggers the unwrapped URL and calls the Postles API to register that the
      * URL was executed.
      *
      * @param universalLink The URL that the app is trying to open
      */
     fun getUriRedirect(universalLink: Uri): Uri? {
-        if (!isParcelvoyDeepLink(universalLink)) return null
+        if (!isPostlesDeepLink(universalLink)) return null
         val redirect = universalLink.getQueryParameter("r") ?: return null
 
         /// Run the URL so that the redirect events get triggered at API
@@ -441,7 +441,7 @@ open class Parcelvoy protected constructor(
         return redirect.toUri()
     }
 
-    fun isParcelvoyDeepLink(uri: Uri): Boolean {
+    fun isPostlesDeepLink(uri: Uri): Boolean {
         uri.getQueryParameter("r") ?: return false
         return uri.path?.endsWith("/c") == true || uri.path?.contains("/c/") == true
     }
@@ -461,14 +461,14 @@ open class Parcelvoy protected constructor(
         }
 
     companion object {
-        private const val LOG_TAG = "Parcelvoy"
+        private const val LOG_TAG = "Postles"
 
         /**
          * Initialize the library with the required API key and URL endpoint
          * **This must be called before any other methods**
          *
          * @param apiKey A generated public API key
-         * @param urlEndpoint The based domain of the hosted Parcelvoy instance
+         * @param urlEndpoint The based domain of the hosted Postles instance
          *
          */
         fun initialize(
@@ -477,7 +477,7 @@ open class Parcelvoy protected constructor(
             urlEndpoint: String,
             inAppDelegate: InAppDelegate? = null,
             isDebug: Boolean = false
-        ): Parcelvoy {
+        ): Postles {
             require(apiKey.isNotEmpty())
             require(urlEndpoint.isNotEmpty())
             return initialize(app, Config(apiKey, urlEndpoint, inAppDelegate, isDebug))
@@ -490,13 +490,13 @@ open class Parcelvoy protected constructor(
          * @param config An initialized <code>Config</code>
          *
          */
-        fun initialize(app: Application, config: Config): Parcelvoy = Parcelvoy(app, config)
+        fun initialize(app: Application, config: Config): Postles = Postles(app, config)
 
-        fun isParcelvoyPush(extras: Bundle?): Boolean =
-            extras?.getString(Constants.PARCELVOY_KEY)?.toBoolean() ?: (extras?.getBoolean(Constants.PARCELVOY_KEY) == true)
+        fun isPostlesPush(extras: Bundle?): Boolean =
+            extras?.getString(Constants.POSTLES_KEY)?.toBoolean() ?: (extras?.getBoolean(Constants.POSTLES_KEY) == true)
 
         fun isCheckMessagePush(extras: Bundle?): Boolean =
-            isParcelvoyPush(extras) &&
+            isPostlesPush(extras) &&
                 extras?.getString(Constants.IN_APP_CHECK_MESSAGE_KEY)?.toBoolean() ?: (extras?.getBoolean(Constants.IN_APP_CHECK_MESSAGE_KEY) == true)
     }
 }

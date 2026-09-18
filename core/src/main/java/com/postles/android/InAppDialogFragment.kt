@@ -1,4 +1,4 @@
-package com.parcelvoy.android
+package com.postles.android
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -36,8 +36,8 @@ class InAppDialogFragment : DialogFragment() {
             val url = request?.url ?: return false
             Log.d(DIALOG_TAG, "WebView trying to load URL: $url")
 
-            if (url.scheme == Constants.PARCELVOY_KEY) {
-                when (url.host) { // e.g., parcelvoy://dismiss, parcelvoy://custom
+            if (url.scheme == Constants.POSTLES_KEY) {
+                when (url.host) { // e.g., postles://dismiss, postles://custom
                     "dismiss" -> processAction(InAppAction.DISMISS)
                     "custom" -> {
                         val params = mutableMapOf<String, Any>("url" to url.toString())
@@ -67,8 +67,8 @@ class InAppDialogFragment : DialogFragment() {
         override fun onPageFinished(view: WebView, url: String) {
             super.onPageFinished(view, url)
 
-            val dismissScript = "window.dismiss = function() { ParcelvoyJSBridge.postMessage('dismiss', ''); };"
-            val triggerScript = "window.trigger = function(obj) { ParcelvoyJSBridge.postMessage('custom', JSON.stringify(obj)); };"
+            val dismissScript = "window.dismiss = function() { PostlesJSBridge.postMessage('dismiss', ''); };"
+            val triggerScript = "window.trigger = function(obj) { PostlesJSBridge.postMessage('custom', JSON.stringify(obj)); };"
 
             view.evaluateJavascript(dismissScript, null)
             view.evaluateJavascript(triggerScript, null)
@@ -85,7 +85,7 @@ class InAppDialogFragment : DialogFragment() {
         }
     }
 
-    private var notification: ParcelvoyNotification? = null
+    private var notification: PostlesNotification? = null
     private var delegate: InAppDelegate? = null
 
     override fun onStart() {
@@ -119,7 +119,7 @@ class InAppDialogFragment : DialogFragment() {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             setBackgroundColor(Color.TRANSPARENT)
-            addJavascriptInterface(WebAppInterface(), "ParcelvoyJSBridge")
+            addJavascriptInterface(WebAppInterface(), "PostlesJSBridge")
         }
 
         webViewContainer.addView(
@@ -253,11 +253,11 @@ class InAppDialogFragment : DialogFragment() {
     }
 
     companion object {
-        const val DIALOG_TAG = "ParcelvoyInAppDialog"
+        const val DIALOG_TAG = "PostlesInAppDialog"
         private const val ARG_NOTIFICATION = "arg_notification"
 
         fun newInstance(
-            notification: ParcelvoyNotification,
+            notification: PostlesNotification,
             delegate: InAppDelegate
         ): InAppDialogFragment = InAppDialogFragment().apply {
             arguments = bundleOf(ARG_NOTIFICATION to notification)

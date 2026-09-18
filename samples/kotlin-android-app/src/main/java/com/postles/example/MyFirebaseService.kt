@@ -1,4 +1,4 @@
-package com.parcelvoy.example
+package com.postles.example
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -11,7 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.os.bundleOf
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.parcelvoy.android.Parcelvoy
+import com.postles.android.Postles
 
 class MyFirebaseService : FirebaseMessagingService() {
 
@@ -45,7 +45,7 @@ class MyFirebaseService : FirebaseMessagingService() {
 
         MainApplication.analytics.pushReceived(bundle)
 
-        if (Parcelvoy.isCheckMessagePush(bundle)) {
+        if (Postles.isCheckMessagePush(bundle)) {
             // Do not show a notification if it's a InApp Message push
             return
         }

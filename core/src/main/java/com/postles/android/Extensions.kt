@@ -1,4 +1,4 @@
-package com.parcelvoy.android
+package com.postles.android
 
 import android.os.Build
 import android.os.Bundle

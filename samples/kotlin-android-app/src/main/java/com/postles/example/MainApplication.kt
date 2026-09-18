@@ -1,13 +1,13 @@
-package com.parcelvoy.example
+package com.postles.example
 
 import android.app.Application
 import android.util.Log
 import android.widget.Toast
-import com.parcelvoy.android.InAppAction
-import com.parcelvoy.android.InAppDelegate
-import com.parcelvoy.android.InAppDisplayState
-import com.parcelvoy.android.Parcelvoy
-import com.parcelvoy.android.ParcelvoyNotification
+import com.postles.android.InAppAction
+import com.postles.android.InAppDelegate
+import com.postles.android.InAppDisplayState
+import com.postles.android.Postles
+import com.postles.android.PostlesNotification
 
 class MainApplication : Application(), InAppDelegate {
 
@@ -16,8 +16,8 @@ class MainApplication : Application(), InAppDelegate {
 
         // TODO: Enter API Key and URL
         val apiKey = "" // like: pk_fdfbi282ec65-4a4f-b9ef-6f6979905523
-        val urlEndpoint = "" // like: https://parcelvoy.company.com/api
-        analytics = Parcelvoy.initialize(
+        val urlEndpoint = "" // like: https://postles.company.com/api
+        analytics = Postles.initialize(
             app = this,
             apiKey = apiKey,
             urlEndpoint = urlEndpoint,
@@ -30,7 +30,7 @@ class MainApplication : Application(), InAppDelegate {
 
     override val useDarkMode: Boolean = false
 
-    override fun onNew(notification: ParcelvoyNotification): InAppDisplayState {
+    override fun onNew(notification: PostlesNotification): InAppDisplayState {
         Log.d(LOG_TAG, "onNew: $notification")
         return InAppDisplayState.SHOW
     }
@@ -38,7 +38,7 @@ class MainApplication : Application(), InAppDelegate {
     override fun handle(
         action: InAppAction,
         context: Map<String, Any>,
-        notification: ParcelvoyNotification
+        notification: PostlesNotification
     ) {
         Log.d(LOG_TAG, "handle: $action, context: $context, notification: $notification")
         Toast.makeText(this, "Action: $action", Toast.LENGTH_SHORT).show()
@@ -52,6 +52,6 @@ class MainApplication : Application(), InAppDelegate {
     companion object {
         private const val LOG_TAG = "MainApplication"
         
-        lateinit var analytics: Parcelvoy
+        lateinit var analytics: Postles
     }
 }

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace "com.parcelvoy.example"
+    namespace "com.postles.example"
     compileSdkVersion 36
 
     defaultConfig {
-        applicationId "com.parcelvoy.example"
+        applicationId "com.postles.example"
         minSdkVersion 23
         targetSdkVersion 36
         versionCode 1

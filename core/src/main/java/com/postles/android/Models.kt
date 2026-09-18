@@ -1,10 +1,10 @@
-package com.parcelvoy.android
+package com.postles.android
 
 import android.os.Build
 import android.os.Parcelable
 import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
-import com.parcelvoy.android.network.NotificationContentDeserializer
+import com.postles.android.network.NotificationContentDeserializer
 import kotlinx.parcelize.Parcelize
 import org.json.JSONException
 import org.json.JSONObject
@@ -127,7 +127,7 @@ data class HtmlNotification(
 ) : NotificationContent
 
 @Parcelize
-data class ParcelvoyNotification(
+data class PostlesNotification(
     val id: Long,
     val contentType: NotificationType,
     val content: NotificationContent,
@@ -140,7 +140,7 @@ enum class InAppAction {
     CUSTOM,
 }
 
-class ParcelvoyAction(
+class PostlesAction(
     val config: JSONObject
 ) {
 
@@ -159,20 +159,20 @@ class ParcelvoyAction(
     companion object {
         const val ACTION_TYPE_OPEN_URL: String = "openUrl"
 
-        fun from(config: JSONObject?): ParcelvoyAction? = config?.let { ParcelvoyAction(it) }
+        fun from(config: JSONObject?): PostlesAction? = config?.let { PostlesAction(it) }
 
-        fun actionOpenUrl(url: String?): ParcelvoyAction? =
+        fun actionOpenUrl(url: String?): PostlesAction? =
             url?.let {
                 val config = JSONObject()
                 config.put("type", "openUrl")
                 config.put("data", url)
-                ParcelvoyAction(config)
+                PostlesAction(config)
             }
 
-        fun actionCustomAction(customActionName: String): ParcelvoyAction? {
+        fun actionCustomAction(customActionName: String): PostlesAction? {
             val config = JSONObject()
             config.put("type", customActionName)
-            return ParcelvoyAction(config)
+            return PostlesAction(config)
         }
     }
 }

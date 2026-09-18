@@ -1,13 +1,13 @@
-package com.parcelvoy.android.network
+package com.postles.android.network
 
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
-import com.parcelvoy.android.Alias
-import com.parcelvoy.android.Config
-import com.parcelvoy.android.NotificationContent
-import com.parcelvoy.android.ParcelvoyNotification
+import com.postles.android.Alias
+import com.postles.android.Config
+import com.postles.android.NotificationContent
+import com.postles.android.PostlesNotification
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -25,7 +25,7 @@ class NetworkManager(
         .serializeNulls()
         .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
         .registerTypeAdapter(Date::class.java, DateAdapter())
-        .registerTypeAdapter(ParcelvoyNotification::class.java, ParcelvoyNotificationDeserializer())
+        .registerTypeAdapter(PostlesNotification::class.java, PostlesNotificationDeserializer())
         .create()
 
     private val httpLoggingInterceptor: HttpLoggingInterceptor

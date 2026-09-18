@@ -1,4 +1,4 @@
-package com.parcelvoy.android
+package com.postles.android
 
 enum class InAppDisplayState {
     SHOW,
@@ -14,17 +14,17 @@ interface InAppDelegate {
     val useDarkMode: Boolean
         get() = false
 
-    fun onNew(notification: ParcelvoyNotification): InAppDisplayState {
+    fun onNew(notification: PostlesNotification): InAppDisplayState {
         return InAppDisplayState.SHOW
     }
 
-    fun handle(action: InAppAction, context: Map<String, Any>, notification: ParcelvoyNotification)
+    fun handle(action: InAppAction, context: Map<String, Any>, notification: PostlesNotification)
 
     fun onError(error: Throwable) {
         // Default empty implementation
     }
 
-    fun onNotificationShown(notification: ParcelvoyNotification) {
+    fun onNotificationShown(notification: PostlesNotification) {
         // Default empty implementation
     }
 }

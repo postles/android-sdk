@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.parcelvoy.example">
+    package="com.postles.example">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -30,11 +30,11 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <!-- Trigger Deep-link from cmd line:
-                adb shell am start -a android.intent.action.VIEW -c android.intent.category.DEFAULT -d "https://parcelvoy.com/c?r=https%3A%2F%2Fparcelvoy.com%2Ftest%2F97"
+                adb shell am start -a android.intent.action.VIEW -c android.intent.category.DEFAULT -d "https://postles.com/c?r=https%3A%2F%2Fpostles.com%2Ftest%2F97"
                 -->
 
                 <data
-                    android:host="parcelvoy.com"
+                    android:host="postles.com"
                     android:pathPrefix="/c"
                     android:scheme="https" />
             </intent-filter>

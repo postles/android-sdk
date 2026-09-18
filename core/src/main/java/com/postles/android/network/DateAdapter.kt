@@ -1,4 +1,4 @@
-package com.parcelvoy.android.network
+package com.postles.android.network
 
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
@@ -8,7 +8,7 @@ import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.google.gson.JsonSyntaxException
-import com.parcelvoy.android.Constants
+import com.postles.android.Constants
 import java.lang.reflect.Type
 import java.text.ParseException
 import java.util.Date

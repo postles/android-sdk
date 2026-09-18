@@ -1,25 +1,25 @@
-package com.parcelvoy.android.network
+package com.postles.android.network
 
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
-import com.parcelvoy.android.AlertNotification
-import com.parcelvoy.android.BannerNotification
-import com.parcelvoy.android.HtmlNotification
-import com.parcelvoy.android.NotificationContent // Assuming this is a sealed interface or common base class
-import com.parcelvoy.android.NotificationType
-import com.parcelvoy.android.ParcelvoyNotification
+import com.postles.android.AlertNotification
+import com.postles.android.BannerNotification
+import com.postles.android.HtmlNotification
+import com.postles.android.NotificationContent // Assuming this is a sealed interface or common base class
+import com.postles.android.NotificationType
+import com.postles.android.PostlesNotification
 import java.lang.reflect.Type
 import java.util.Date
 
-class ParcelvoyNotificationDeserializer : JsonDeserializer<ParcelvoyNotification> {
+class PostlesNotificationDeserializer : JsonDeserializer<PostlesNotification> {
 
     override fun deserialize(
         json: JsonElement,
         typeOfT: Type,
         context: JsonDeserializationContext
-    ): ParcelvoyNotification {
+    ): PostlesNotification {
         val jsonObject = json.asJsonObject
         val contentTypeString = jsonObject.get("content_type").asString
         val contentType = try {
@@ -33,7 +33,7 @@ class ParcelvoyNotificationDeserializer : JsonDeserializer<ParcelvoyNotification
             contentJson,
             NotificationContent::class.java
         )
-        return ParcelvoyNotification(
+        return PostlesNotification(
             id = jsonObject.get("id")?.asLong ?: 0L,
             contentType = contentType,
             content = notificationContent,

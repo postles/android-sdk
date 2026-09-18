@@ -1,13 +1,13 @@
-package com.parcelvoy.android.network
+package com.postles.android.network
 
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import com.parcelvoy.android.AlertNotification
-import com.parcelvoy.android.BannerNotification
-import com.parcelvoy.android.HtmlNotification
-import com.parcelvoy.android.NotificationContent
+import com.postles.android.AlertNotification
+import com.postles.android.BannerNotification
+import com.postles.android.HtmlNotification
+import com.postles.android.NotificationContent
 import java.lang.reflect.Type
 
 class NotificationContentDeserializer : JsonDeserializer<NotificationContent> {

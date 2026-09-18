@@ -1,23 +1,23 @@
-[![](https://jitpack.io/v/parcelvoy/android-sdk.svg)](https://jitpack.io/#parcelvoy/android-sdk)
+[![](https://jitpack.io/v/postles/android-sdk.svg)](https://jitpack.io/#postles/android-sdk)
 
 <p align="center">
-  <img width="400" alt="Parcelvoy Logo" src=".github/assets/logo-light.png#gh-light-mode-only" />
-  <img width="400" alt="Parcelvoy Logo" src=".github/assets/logo-dark.png#gh-dark-mode-only" />
+  <img width="400" alt="Postles Logo" src=".github/assets/logo-light.png#gh-light-mode-only" />
+  <img width="400" alt="Postles Logo" src=".github/assets/logo-dark.png#gh-dark-mode-only" />
 </p>
 
-# Parcelvoy Android SDK
+# Postles Android SDK
 
 ## Installation
-Installing the Parcelvoy Android SDK will provide you with user identification, deeplink unwrapping and basic tracking functionality. The Android SDK is available through jitpack or through manual installation.
+Installing the Postles Android SDK will provide you with user identification, deeplink unwrapping and basic tracking functionality. The Android SDK is available through jitpack or through manual installation.
 
 ### Version Information
-- The Parcelvoy Android SDK supports SDK 21+
+- The Postles Android SDK supports SDK 21+
 
 ### Install the SDK
 In your **build.gradle** add:
 ```
 dependencies {
-    implementation 'com.github.parcelvoy:android-sdk:1.0.10'
+    implementation 'com.github.postles:android-sdk:1.0.10'
 }
 ```
 
@@ -27,7 +27,7 @@ Before using any methods, the library must be initialized with an API key and UR
 
 Initialize the library:
 ```kotlin
-val analytics = Parcelvoy.initialize(context, YOUR_API_KEY, YOUR_URL_ENDPOINT)
+val analytics = Postles.initialize(context, YOUR_API_KEY, YOUR_URL_ENDPOINT)
 ```
 
 ### Identify
@@ -52,7 +52,7 @@ analytics.track(
 ```
 
 ### Register Device
-In order to send push notifications to a given device you need to register for notifications and then register the device with Parcelvoy. You can do so by using the `register` method. If a user does not grant access to send notifications, you can also call this method without a token to register device characteristics.
+In order to send push notifications to a given device you need to register for notifications and then register the device with Postles. You can do so by using the `register` method. If a user does not grant access to send notifications, you can also call this method without a token to register device characteristics.
 ```kotlin
 analytics.register(
     token = token,
@@ -62,13 +62,13 @@ analytics.register(
 ```
 
 ### Deeplink Navigation
-To allow for click tracking links in emails can be click-wrapped in a Parcelvoy url that then needs to be unwrapped for navigation purposes. For information on setting this up on your platform, please see our [deeplink documentation](https://docs.parcelvoy.com/advanced/deeplinking).
+To allow for click tracking links in emails can be click-wrapped in a Postles url that then needs to be unwrapped for navigation purposes. For information on setting this up on your platform, please see our [deeplink documentation](https://docs.postles.com/advanced/deeplinking).
 
-Parcelvoy includes a method which checks to see if a given URL is a Parcelvoy URL and if so, unwraps the url, triggers the unwrapped URL and calls the Parcelvoy API to register that the URL was executed.
+Postles includes a method which checks to see if a given URL is a Postles URL and if so, unwraps the url, triggers the unwrapped URL and calls the Postles API to register that the URL was executed.
 
-To start using deeplinking in your app, add your Parcelvoy deployment URL in your activity `intent-filter`. Example in the sample project [dere](samples/kotlin-android-app/src/main/AndroidManifest.xml).
+To start using deeplinking in your app, add your Postles deployment URL in your activity `intent-filter`. Example in the sample project [dere](samples/kotlin-android-app/src/main/AndroidManifest.xml).
 
-Next, you'll need to update your apps code to support unwrapping the Parcelvoy URLs that open your app. To do so, use the `getUriRedirect(universalLink)` method. In your app delegate's `onNewIntent(intent)` method, unwrap the URL and pass it to the handler:
+Next, you'll need to update your apps code to support unwrapping the Postles URLs that open your app. To do so, use the `getUriRedirect(universalLink)` method. In your app delegate's `onNewIntent(intent)` method, unwrap the URL and pass it to the handler:
 
 ```kotlin
 override fun onNewIntent(intent: Intent?) {
@@ -81,7 +81,7 @@ override fun onNewIntent(intent: Intent?) {
 }
 ```
 
-Parcelvoy links will now be automatically read and opened in your application.
+Postles links will now be automatically read and opened in your application.
 
 ## Example
 
