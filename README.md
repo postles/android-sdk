@@ -11,7 +11,7 @@ Installing the Postles Android SDK will provide you with user identification, de
 In your **build.gradle** add:
 ```
 dependencies {
-    implementation 'com.github.postles:android-sdk:1.1.0'
+    implementation 'com.github.postles:android-sdk:1.2.0'
 }
 ```
 
@@ -55,25 +55,86 @@ analytics.register(
 )
 ```
 
-### Subscription Preferences
-Read and modify a user's subscription preferences directly through SDK methods — no UI is included, so you can build your own preference center (or manage preferences programmatically). `getSubscriptions` returns the project's public subscriptions along with the current user's state for each. Use `subscribe`/`unsubscribe` to toggle a single subscription, or `setSubscription` to set an explicit state. The user must be identified first (via `identify`). All of these are `suspend` functions (call them from a coroutine) and return a `Result`.
+### Topics
+The SDK provides the data and methods for building a preference center. It does not include UI. Identify the user before calling these `suspend` functions.
+
+`getTopicChannels` groups each channel master with its topics. Show topic toggles when a channel has more than one topic or any opt-in topic. If a master is paused, keep its topic values disabled and do not submit them. A locked master can be turned off in the app, but the user must text START to turn it back on.
+
 ```kotlin
-lifecycleScope.launch {
-    // Read the current preferences
-    analytics.getSubscriptions().onSuccess { page ->
-        page.results.forEach { preference ->
-            Log.d("Postles", "${preference.name} (${preference.channel}): ${preference.state}")
+private var loadedChannels: List<TopicChannel> = emptyList()
+
+fun loadTopicPreferences() = lifecycleScope.launch {
+    analytics.getTopicChannels().onSuccess { channels ->
+        loadedChannels = channels
+        channels.forEach { channel ->
+            val showTopics = channel.topics.size > 1 || channel.topics.any { it.isOptIn }
+            val locked = channel.paused && !channel.canResubscribe
+
+            if (locked) {
+                showStartNotice(channel.resubscribeTextNumber)
+            } else {
+                showMasterToggle(channel.master)
+            }
+
+            if (showTopics) {
+                showTopicToggles(
+                    topics = channel.topics,
+                    selected = { it.state == TopicState.SUBSCRIBED },
+                    enabled = !channel.paused
+                )
+            }
+        }
+    }.onFailure(::showError)
+}
+
+fun saveTopicPreferences() {
+    val updates = loadedChannels.flatMap { channel ->
+        buildList {
+            channel.master
+                ?.takeUnless { channel.paused && !channel.canResubscribe }
+                ?.let { add(TopicUpdate(it.subscriptionId, selectedState(it))) }
+
+            if (!channel.paused) {
+                channel.topics.forEach {
+                    add(TopicUpdate(it.subscriptionId, selectedState(it)))
+                }
+            }
         }
     }
 
-    // Toggle a preference
-    analytics.unsubscribe(subscriptionId = 123)
-    analytics.subscribe(subscriptionId = 123)
-
-    // Or set an explicit state
-    analytics.setSubscription(subscriptionId = 123, state = SubscriptionState.UNSUBSCRIBED)
+    lifecycleScope.launch {
+        analytics.setTopics(updates).onFailure { error ->
+            if (error is PostlesException && error.isTopicResubscribeLocked) {
+                val textNumber = loadedChannels
+                    .firstOrNull { it.channel == "text" }
+                    ?.resubscribeTextNumber
+                showStartNotice(textNumber)
+            } else {
+                showError(error)
+            }
+        }
+    }
 }
+
+fun selectedState(topic: Topic): TopicState =
+    if (isTopicSelected(topic)) TopicState.SUBSCRIBED else TopicState.UNSUBSCRIBED
 ```
+
+`NOT_OPTED_IN` means the user has not made a choice for an opt-in topic. Render it unchecked. When the user taps Save, map the control's current value to `SUBSCRIBED` or `UNSUBSCRIBED` as `selectedState` does above. If a `TopicUpdate` is constructed with `NOT_OPTED_IN`, it serializes that state as `UNSUBSCRIBED`, so the read-only state is never sent to the server.
+
+The previous names remain available as deprecated aliases:
+
+| Previous name | Replacement |
+|---|---|
+| `SubscriptionState` | `TopicState` |
+| `SubscriptionPreference` | `Topic` |
+| `SubscriptionUpdate` | `TopicUpdate` |
+| `getSubscriptions()` | `getTopics()` |
+| `setSubscription()` | `setTopic()` |
+| `subscribe()` | `subscribeTopic()` |
+| `unsubscribe()` | `unsubscribeTopic()` |
+
+The legacy API reports `not_opted_in` as `SubscriptionState.UNSUBSCRIBED`.
 
 ### Deeplink Navigation
 To allow for click tracking links in emails can be click-wrapped in a Postles url that then needs to be unwrapped for navigation purposes. For information on setting this up on your platform, please see our [deeplink documentation](https://docs.postles.com/advanced/deeplinking).
