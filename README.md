@@ -1,11 +1,5 @@
-[![](https://jitpack.io/v/postles/android-sdk.svg)](https://jitpack.io/#postles/android-sdk)
-
-<p align="center">
-  <img width="400" alt="Postles Logo" src=".github/assets/logo-light.png#gh-light-mode-only" />
-  <img width="400" alt="Postles Logo" src=".github/assets/logo-dark.png#gh-dark-mode-only" />
-</p>
-
 # Postles Android SDK
+[![](https://jitpack.io/v/postles/android-sdk.svg)](https://jitpack.io/#postles/android-sdk)
 
 ## Installation
 Installing the Postles Android SDK will provide you with user identification, deeplink unwrapping and basic tracking functionality. The Android SDK is available through jitpack or through manual installation.
@@ -17,7 +11,7 @@ Installing the Postles Android SDK will provide you with user identification, de
 In your **build.gradle** add:
 ```
 dependencies {
-    implementation 'com.github.postles:android-sdk:1.0.10'
+    implementation 'com.github.postles:android-sdk:1.1.0'
 }
 ```
 
