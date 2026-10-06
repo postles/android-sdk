@@ -6,11 +6,14 @@ import android.app.Application.ActivityLifecycleCallbacks
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.postles.android.network.NetworkManager
@@ -32,7 +35,8 @@ open class Postles protected constructor(
     private val libraryScope: CoroutineScope = ProcessLifecycleOwner.get().lifecycleScope
 
     private var currentActivity: WeakReference<AppCompatActivity?> = WeakReference(null)
-    private var hasAutoShown: Boolean = false
+    private var needsForegroundCheck: Boolean = true
+    private var lastInAppFetch: Long = 0
     private val skipNotificationSet: MutableSet<Long> = mutableSetOf()
 
     private val inAppDelegate: InAppDelegate?
@@ -51,14 +55,25 @@ open class Postles protected constructor(
                 override fun onActivityResumed(p0: Activity) {
                     if (p0 is AppCompatActivity) {
                         currentActivity = WeakReference(p0)
-                        if (inAppDelegate?.autoShow == true && !hasAutoShown) {
-                            hasAutoShown = true
-                            showLatestNotification()
+                        if (inAppDelegate?.autoShow == true && needsForegroundCheck) {
+                            needsForegroundCheck = false
+                            showLatestNotificationIfNeeded()
                         }
                     }
                 }
             }
         )
+        if (config.fetchInAppOnForeground) {
+            libraryScope.launch {
+                ProcessLifecycleOwner.get().lifecycle.addObserver(
+                    object : DefaultLifecycleObserver {
+                        override fun onStop(owner: LifecycleOwner) {
+                            needsForegroundCheck = true
+                        }
+                    }
+                )
+            }
+        }
     }
 
     /**
@@ -309,6 +324,23 @@ open class Postles protected constructor(
      * Fetches the latest notifications and processes them based on the InAppDelegate's response.
      */
     fun showLatestNotification() {
+        claimInAppFetch(force = true)
+        fetchLatestNotification()
+    }
+
+    private fun showLatestNotificationIfNeeded() {
+        if (claimInAppFetch(force = false)) fetchLatestNotification()
+    }
+
+    @Synchronized
+    private fun claimInAppFetch(force: Boolean): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        if (!force && lastInAppFetch != 0L && now - lastInAppFetch < Constants.IN_APP_FETCH_THROTTLE_MS) return false
+        lastInAppFetch = now
+        return true
+    }
+
+    private fun fetchLatestNotification() {
         libraryScope.launch {
             try {
                 val firstNotification = getNotifications().getOrThrow().results.firstOrNull {
@@ -477,8 +509,12 @@ open class Postles protected constructor(
      * @param bundle The payload from the push notification.
      */
     fun pushReceived(bundle: Bundle) {
-        // Handle silent notifications that should only trigger in-app messages
-        if (isCheckMessagePush(bundle)) showLatestNotification()
+        when {
+            // Silent check pushes exist only to trigger the fetch, so they skip the throttle
+            isCheckMessagePush(bundle) -> showLatestNotification()
+            isPostlesPush(bundle) && config.fetchInAppOnForeground && inAppDelegate?.autoShow == true ->
+                showLatestNotificationIfNeeded()
+        }
     }
 
     /**
@@ -570,11 +606,12 @@ open class Postles protected constructor(
             apiKey: String,
             urlEndpoint: String,
             inAppDelegate: InAppDelegate? = null,
-            isDebug: Boolean = false
+            isDebug: Boolean = false,
+            fetchInAppOnForeground: Boolean = true
         ): Postles {
             require(apiKey.isNotEmpty())
             require(urlEndpoint.isNotEmpty())
-            return initialize(app, Config(apiKey, urlEndpoint, inAppDelegate, isDebug))
+            return initialize(app, Config(apiKey, urlEndpoint, inAppDelegate, isDebug, fetchInAppOnForeground))
         }
 
         /**
