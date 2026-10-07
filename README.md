@@ -146,7 +146,7 @@ override fun onMessageReceived(remoteMessage: RemoteMessage) {
 }
 ```
 
-To turn the foreground and push checks off and fetch on your own schedule with `showLatestNotification()`, pass `fetchInAppOnForeground = false`:
+To turn off the foreground and push checks, pass `fetchInAppOnForeground = false`. The check when the app first opens still follows `autoShow`, exactly as before this setting existed; turn `autoShow` off too if your app should only ever fetch on its own schedule with `showLatestNotification()`:
 ```kotlin
 val analytics = Postles.initialize(
     context,

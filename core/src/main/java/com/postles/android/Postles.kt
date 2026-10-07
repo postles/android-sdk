@@ -35,7 +35,8 @@ open class Postles protected constructor(
     private val libraryScope: CoroutineScope = ProcessLifecycleOwner.get().lifecycleScope
 
     private var currentActivity: WeakReference<AppCompatActivity?> = WeakReference(null)
-    private var needsForegroundCheck: Boolean = true
+    @Volatile private var needsForegroundCheck: Boolean = true
+    @Volatile private var hasResumedActivity: Boolean = false
     private var lastInAppFetch: Long = 0
     private val skipNotificationSet: MutableSet<Long> = mutableSetOf()
 
@@ -47,7 +48,9 @@ open class Postles protected constructor(
             object : ActivityLifecycleCallbacks {
                 override fun onActivityCreated(p0: Activity, p1: Bundle?) = Unit
                 override fun onActivityDestroyed(p0: Activity) = Unit
-                override fun onActivityPaused(p0: Activity) = Unit
+                override fun onActivityPaused(p0: Activity) {
+                    hasResumedActivity = false
+                }
                 override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) = Unit
                 override fun onActivityStarted(p0: Activity) = Unit
                 override fun onActivityStopped(p0: Activity) = Unit
@@ -55,6 +58,7 @@ open class Postles protected constructor(
                 override fun onActivityResumed(p0: Activity) {
                     if (p0 is AppCompatActivity) {
                         currentActivity = WeakReference(p0)
+                        hasResumedActivity = true
                         if (inAppDelegate?.autoShow == true && needsForegroundCheck) {
                             needsForegroundCheck = false
                             showLatestNotificationIfNeeded()
@@ -368,13 +372,13 @@ open class Postles protected constructor(
     suspend fun show(
         notification: PostlesNotification,
     ) {
-        withContext(Dispatchers.Main) {
+        val shown = withContext(Dispatchers.Main) {
             val fragmentManager = currentActivity.get()?.supportFragmentManager
             if (fragmentManager == null) {
                 val state = IllegalStateException("No fragment manager available to show in-app notification.")
                 Log.e(LOG_TAG, "Exception", state)
                 inAppDelegate?.onError(state)
-                return@withContext
+                return@withContext false
             }
 
             val existingDialog = fragmentManager.findFragmentByTag(InAppDialogFragment.DIALOG_TAG) as? DialogFragment
@@ -416,9 +420,10 @@ open class Postles protected constructor(
                 }
             ).show(fragmentManager, InAppDialogFragment.DIALOG_TAG)
             Log.i(LOG_TAG, "Showing in-app notification dialog: ${notification.id}")
+            true
         }
 
-        if (notification.content.readOnShow == true) consume(notification)
+        if (shown && notification.content.readOnShow == true) consume(notification)
     }
 
     /**
@@ -513,7 +518,7 @@ open class Postles protected constructor(
             // Silent check pushes exist only to trigger the fetch, so they skip the throttle
             isCheckMessagePush(bundle) -> showLatestNotification()
             isPostlesPush(bundle) && config.fetchInAppOnForeground && inAppDelegate?.autoShow == true ->
-                showLatestNotificationIfNeeded()
+                if (hasResumedActivity) showLatestNotificationIfNeeded() else needsForegroundCheck = true
         }
     }
 
