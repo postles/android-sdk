@@ -137,24 +137,13 @@ The previous names remain available as deprecated aliases:
 The legacy API reports `not_opted_in` as `SubscriptionState.UNSUBSCRIBED`.
 
 ### In-App Messages
-Pass an `InAppDelegate` when you initialize and the SDK fetches and shows waiting in-app messages for you, so your app does not need to fetch them itself. While the delegate's `autoShow` is on, it checks when the app first opens, every time the app comes back to the foreground, and whenever a Postles push arrives. Checks are limited to one every 30 seconds, so switching in and out of the app repeatedly makes a single request.
+Pass an `InAppDelegate` when you initialize and the SDK fetches and shows waiting in-app messages for you, so your app does not need to fetch them itself. While the delegate's `autoShow` is on, the SDK shows waiting messages as soon as it can: when the app first opens, every time the app comes back to the foreground, and whenever a Postles push arrives. Checks are limited to one every 30 seconds, so switching in and out of the app repeatedly makes a single request. Turn `autoShow` off to fetch only on your own schedule with `showLatestNotification()`.
 
 Hand every received push to the SDK so it can check:
 ```kotlin
 override fun onMessageReceived(remoteMessage: RemoteMessage) {
     analytics.pushReceived(bundleOf(*remoteMessage.data.toList().toTypedArray()))
 }
-```
-
-To turn off the foreground and push checks, pass `fetchInAppOnForeground = false`. The check when the app first opens still follows `autoShow`, exactly as before this setting existed; turn `autoShow` off too if your app should only ever fetch on its own schedule with `showLatestNotification()`:
-```kotlin
-val analytics = Postles.initialize(
-    context,
-    YOUR_API_KEY,
-    YOUR_URL_ENDPOINT,
-    inAppDelegate = myInAppDelegate,
-    fetchInAppOnForeground = false,
-)
 ```
 Silent check pushes sent by Postles always trigger a check, since that is their only job.
 

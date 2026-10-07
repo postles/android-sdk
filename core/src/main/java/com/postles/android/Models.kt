@@ -23,7 +23,6 @@ data class Config(
     val urlEndpoint: String,
     val inAppDelegate: InAppDelegate? = null,
     val isDebug: Boolean = false,
-    val fetchInAppOnForeground: Boolean = true,
 )
 
 data class Identity(

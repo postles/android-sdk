@@ -67,16 +67,14 @@ open class Postles protected constructor(
                 }
             }
         )
-        if (config.fetchInAppOnForeground) {
-            libraryScope.launch {
-                ProcessLifecycleOwner.get().lifecycle.addObserver(
-                    object : DefaultLifecycleObserver {
-                        override fun onStop(owner: LifecycleOwner) {
-                            needsForegroundCheck = true
-                        }
+        libraryScope.launch {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(
+                object : DefaultLifecycleObserver {
+                    override fun onStop(owner: LifecycleOwner) {
+                        needsForegroundCheck = true
                     }
-                )
-            }
+                }
+            )
         }
     }
 
@@ -517,7 +515,7 @@ open class Postles protected constructor(
         when {
             // Silent check pushes exist only to trigger the fetch, so they skip the throttle
             isCheckMessagePush(bundle) -> showLatestNotification()
-            isPostlesPush(bundle) && config.fetchInAppOnForeground && inAppDelegate?.autoShow == true ->
+            isPostlesPush(bundle) && inAppDelegate?.autoShow == true ->
                 if (hasResumedActivity) showLatestNotificationIfNeeded() else needsForegroundCheck = true
         }
     }
@@ -611,12 +609,11 @@ open class Postles protected constructor(
             apiKey: String,
             urlEndpoint: String,
             inAppDelegate: InAppDelegate? = null,
-            isDebug: Boolean = false,
-            fetchInAppOnForeground: Boolean = true
+            isDebug: Boolean = false
         ): Postles {
             require(apiKey.isNotEmpty())
             require(urlEndpoint.isNotEmpty())
-            return initialize(app, Config(apiKey, urlEndpoint, inAppDelegate, isDebug, fetchInAppOnForeground))
+            return initialize(app, Config(apiKey, urlEndpoint, inAppDelegate, isDebug))
         }
 
         /**
