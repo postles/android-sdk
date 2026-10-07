@@ -7,6 +7,7 @@ class Constants {
     companion object {
         const val POSTLES_KEY: String = "postles"
         const val IN_APP_CHECK_MESSAGE_KEY: String = "check_in_app_messages"
+        const val IN_APP_FETCH_THROTTLE_MS: Long = 30_000
 
         val iso8601DateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")

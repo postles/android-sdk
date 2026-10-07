@@ -11,7 +11,7 @@ Installing the Postles Android SDK will provide you with user identification, de
 In your **build.gradle** add:
 ```
 dependencies {
-    implementation 'com.github.postles:android-sdk:1.2.0'
+    implementation 'com.github.postles:android-sdk:1.3.0'
 }
 ```
 
@@ -135,6 +135,17 @@ The previous names remain available as deprecated aliases:
 | `unsubscribe()` | `unsubscribeTopic()` |
 
 The legacy API reports `not_opted_in` as `SubscriptionState.UNSUBSCRIBED`.
+
+### In-App Messages
+Pass an `InAppDelegate` when you initialize and the SDK fetches and shows waiting in-app messages for you, so your app does not need to fetch them itself. While the delegate's `autoShow` is on, the SDK shows waiting messages as soon as it can: when the app first opens, every time the app comes back to the foreground, and whenever a Postles push arrives. Checks are limited to one every 30 seconds, so switching in and out of the app repeatedly makes a single request. Turn `autoShow` off to fetch only on your own schedule with `showLatestNotification()`.
+
+Hand every received push to the SDK so it can check:
+```kotlin
+override fun onMessageReceived(remoteMessage: RemoteMessage) {
+    analytics.pushReceived(bundleOf(*remoteMessage.data.toList().toTypedArray()))
+}
+```
+Silent check pushes sent by Postles always trigger a check, since that is their only job.
 
 ### Deeplink Navigation
 To allow for click tracking links in emails can be click-wrapped in a Postles url that then needs to be unwrapped for navigation purposes. For information on setting this up on your platform, please see our [deeplink documentation](https://docs.postles.com/advanced/deeplinking).

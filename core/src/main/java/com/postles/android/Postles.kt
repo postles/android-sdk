@@ -6,11 +6,14 @@ import android.app.Application.ActivityLifecycleCallbacks
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.postles.android.network.NetworkManager
@@ -32,7 +35,9 @@ open class Postles protected constructor(
     private val libraryScope: CoroutineScope = ProcessLifecycleOwner.get().lifecycleScope
 
     private var currentActivity: WeakReference<AppCompatActivity?> = WeakReference(null)
-    private var hasAutoShown: Boolean = false
+    private var needsForegroundCheck: Boolean = true
+    private var resumedActivities: Int = 0
+    private var lastInAppFetch: Long = 0
     private val skipNotificationSet: MutableSet<Long> = mutableSetOf()
 
     private val inAppDelegate: InAppDelegate?
@@ -43,7 +48,9 @@ open class Postles protected constructor(
             object : ActivityLifecycleCallbacks {
                 override fun onActivityCreated(p0: Activity, p1: Bundle?) = Unit
                 override fun onActivityDestroyed(p0: Activity) = Unit
-                override fun onActivityPaused(p0: Activity) = Unit
+                override fun onActivityPaused(p0: Activity) {
+                    if (p0 is AppCompatActivity) resumedActivities = (resumedActivities - 1).coerceAtLeast(0)
+                }
                 override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) = Unit
                 override fun onActivityStarted(p0: Activity) = Unit
                 override fun onActivityStopped(p0: Activity) = Unit
@@ -51,14 +58,24 @@ open class Postles protected constructor(
                 override fun onActivityResumed(p0: Activity) {
                     if (p0 is AppCompatActivity) {
                         currentActivity = WeakReference(p0)
-                        if (inAppDelegate?.autoShow == true && !hasAutoShown) {
-                            hasAutoShown = true
-                            showLatestNotification()
+                        resumedActivities += 1
+                        if (inAppDelegate?.autoShow == true && needsForegroundCheck) {
+                            needsForegroundCheck = false
+                            showLatestNotificationIfNeeded()
                         }
                     }
                 }
             }
         )
+        libraryScope.launch {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(
+                object : DefaultLifecycleObserver {
+                    override fun onStop(owner: LifecycleOwner) {
+                        needsForegroundCheck = true
+                    }
+                }
+            )
+        }
     }
 
     /**
@@ -309,6 +326,23 @@ open class Postles protected constructor(
      * Fetches the latest notifications and processes them based on the InAppDelegate's response.
      */
     fun showLatestNotification() {
+        claimInAppFetch(force = true)
+        fetchLatestNotification()
+    }
+
+    private fun showLatestNotificationIfNeeded() {
+        if (claimInAppFetch(force = false)) fetchLatestNotification()
+    }
+
+    @Synchronized
+    private fun claimInAppFetch(force: Boolean): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        if (!force && lastInAppFetch != 0L && now - lastInAppFetch < Constants.IN_APP_FETCH_THROTTLE_MS) return false
+        lastInAppFetch = now
+        return true
+    }
+
+    private fun fetchLatestNotification() {
         libraryScope.launch {
             try {
                 val firstNotification = getNotifications().getOrThrow().results.firstOrNull {
@@ -336,13 +370,13 @@ open class Postles protected constructor(
     suspend fun show(
         notification: PostlesNotification,
     ) {
-        withContext(Dispatchers.Main) {
+        val shown = withContext(Dispatchers.Main) {
             val fragmentManager = currentActivity.get()?.supportFragmentManager
             if (fragmentManager == null) {
                 val state = IllegalStateException("No fragment manager available to show in-app notification.")
                 Log.e(LOG_TAG, "Exception", state)
                 inAppDelegate?.onError(state)
-                return@withContext
+                return@withContext false
             }
 
             val existingDialog = fragmentManager.findFragmentByTag(InAppDialogFragment.DIALOG_TAG) as? DialogFragment
@@ -384,9 +418,10 @@ open class Postles protected constructor(
                 }
             ).show(fragmentManager, InAppDialogFragment.DIALOG_TAG)
             Log.i(LOG_TAG, "Showing in-app notification dialog: ${notification.id}")
+            true
         }
 
-        if (notification.content.readOnShow == true) consume(notification)
+        if (shown && notification.content.readOnShow == true) consume(notification)
     }
 
     /**
@@ -477,8 +512,19 @@ open class Postles protected constructor(
      * @param bundle The payload from the push notification.
      */
     fun pushReceived(bundle: Bundle) {
-        // Handle silent notifications that should only trigger in-app messages
-        if (isCheckMessagePush(bundle)) showLatestNotification()
+        libraryScope.launch {
+            val hasScreen = resumedActivities > 0
+            if (isCheckMessagePush(bundle)) {
+                // Silent check pushes exist only to trigger the fetch, so they skip the throttle
+                if (hasScreen) showLatestNotification() else fetchLatestNotification()
+            } else if (isPostlesPush(bundle) && inAppDelegate?.autoShow == true) {
+                if (hasScreen) {
+                    showLatestNotificationIfNeeded()
+                } else {
+                    needsForegroundCheck = true
+                }
+            }
+        }
     }
 
     /**
