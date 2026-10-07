@@ -35,8 +35,8 @@ open class Postles protected constructor(
     private val libraryScope: CoroutineScope = ProcessLifecycleOwner.get().lifecycleScope
 
     private var currentActivity: WeakReference<AppCompatActivity?> = WeakReference(null)
-    @Volatile private var needsForegroundCheck: Boolean = true
-    @Volatile private var hasResumedActivity: Boolean = false
+    private var needsForegroundCheck: Boolean = true
+    private var resumedActivities: Int = 0
     private var lastInAppFetch: Long = 0
     private val skipNotificationSet: MutableSet<Long> = mutableSetOf()
 
@@ -49,7 +49,7 @@ open class Postles protected constructor(
                 override fun onActivityCreated(p0: Activity, p1: Bundle?) = Unit
                 override fun onActivityDestroyed(p0: Activity) = Unit
                 override fun onActivityPaused(p0: Activity) {
-                    hasResumedActivity = false
+                    if (p0 is AppCompatActivity) resumedActivities = (resumedActivities - 1).coerceAtLeast(0)
                 }
                 override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) = Unit
                 override fun onActivityStarted(p0: Activity) = Unit
@@ -58,7 +58,7 @@ open class Postles protected constructor(
                 override fun onActivityResumed(p0: Activity) {
                     if (p0 is AppCompatActivity) {
                         currentActivity = WeakReference(p0)
-                        hasResumedActivity = true
+                        resumedActivities += 1
                         if (inAppDelegate?.autoShow == true && needsForegroundCheck) {
                             needsForegroundCheck = false
                             showLatestNotificationIfNeeded()
@@ -512,11 +512,18 @@ open class Postles protected constructor(
      * @param bundle The payload from the push notification.
      */
     fun pushReceived(bundle: Bundle) {
-        when {
-            // Silent check pushes exist only to trigger the fetch, so they skip the throttle
-            isCheckMessagePush(bundle) -> showLatestNotification()
-            isPostlesPush(bundle) && inAppDelegate?.autoShow == true ->
-                if (hasResumedActivity) showLatestNotificationIfNeeded() else needsForegroundCheck = true
+        libraryScope.launch {
+            val hasScreen = resumedActivities > 0
+            if (isCheckMessagePush(bundle)) {
+                // Silent check pushes exist only to trigger the fetch, so they skip the throttle
+                if (hasScreen) showLatestNotification() else fetchLatestNotification()
+            } else if (isPostlesPush(bundle) && inAppDelegate?.autoShow == true) {
+                if (hasScreen) {
+                    showLatestNotificationIfNeeded()
+                } else {
+                    needsForegroundCheck = true
+                }
+            }
         }
     }
 
