@@ -5,6 +5,7 @@ import android.os.Parcelable
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
+import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
@@ -39,12 +40,47 @@ data class Alias(
     val externalId: String?
 )
 
+data class Geo(
+    /** Two-letter ISO country code. */
+    val country: String? = null,
+    /** Region or state code within the country. */
+    val region: String? = null,
+    val city: String? = null,
+)
+
+sealed class EventLocation {
+    data class Location(val geo: Geo) : EventLocation()
+    object NoLocation : EventLocation()
+}
+
+@JsonAdapter(EventSerializer::class)
 data class Event(
     val name: String,
     val anonymousId: String,
     val externalId: String?,
-    val properties: Map<String, Any>
+    val properties: Map<String, Any>,
+    val geo: EventLocation? = null,
 )
+
+class EventSerializer : JsonSerializer<Event> {
+    override fun serialize(source: Event, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
+        return JsonObject().apply {
+            addProperty("name", source.name)
+            addProperty("anonymous_id", source.anonymousId)
+            addProperty("external_id", source.externalId)
+            add("properties", context.serialize(source.properties))
+            when (val geo = source.geo) {
+                is EventLocation.Location -> add("geo", JsonObject().apply {
+                    geo.geo.country?.let { addProperty("country", it) }
+                    geo.geo.region?.let { addProperty("region", it) }
+                    geo.geo.city?.let { addProperty("city", it) }
+                })
+                EventLocation.NoLocation -> add("geo", JsonNull.INSTANCE)
+                null -> Unit
+            }
+        }
+    }
+}
 
 data class Device(
     val anonymousId: String,

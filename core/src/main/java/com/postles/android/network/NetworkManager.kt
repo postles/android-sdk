@@ -23,7 +23,7 @@ class NetworkManager(
     internal val config: Config,
 ) {
 
-    private val gson: Gson = GsonBuilder()
+    internal val gson: Gson = GsonBuilder()
         .serializeNulls()
         .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
         .registerTypeAdapter(Date::class.java, DateAdapter())

@@ -11,7 +11,7 @@ Installing the Postles Android SDK will provide you with user identification, de
 In your **build.gradle** add:
 ```
 dependencies {
-    implementation 'com.github.postles:android-sdk:1.3.0'
+    implementation 'com.github.postles:android-sdk:1.4.0'
 }
 ```
 
@@ -42,6 +42,14 @@ If you want to trigger journey and list updates off of things a user does within
 analytics.track(
     event = "Application Opened",
     properties = mapOf("property" to true)
+)
+```
+
+With a public API key, each event is stored with the location the request came from. To set the location yourself, pass `geo = EventLocation.Location(...)`; to store no location, pass `geo = EventLocation.NoLocation`.
+```kotlin
+analytics.track(
+    event = "Application Opened",
+    geo = EventLocation.Location(Geo(country = "US", region = "IL", city = "Chicago"))
 )
 ```
 
