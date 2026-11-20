@@ -179,13 +179,16 @@ open class Postles protected constructor(
      *
      * @param event A string name of the event
      * @param properties A dictionary of attributes associated to the event
+     * @param geo Where the event happened. Leave as `null` to use the location
+     * the request came from, or pass [EventLocation.NoLocation] to store none
      */
-    fun track(event: String, properties: Map<String, Any> = emptyMap()) {
+    fun track(event: String, properties: Map<String, Any> = emptyMap(), geo: EventLocation? = null) {
         val event = Event(
             name = event,
             anonymousId = getOrAndOrSetAnonymousId(),
             externalId = externalId,
-            properties = properties
+            properties = properties,
+            geo = geo,
         )
         libraryScope.launch {
             postEvent(listOf(event))
