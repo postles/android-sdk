@@ -36,7 +36,7 @@ class InAppDialogFragment : DialogFragment() {
             val url = request?.url ?: return false
             Log.d(DIALOG_TAG, "WebView trying to load URL: $url")
 
-            if (url.scheme == Constants.POSTLES_KEY) {
+            if (url.scheme == Constants.POSTLES_KEY || url.scheme == Constants.LEGACY_PARCELVOY_KEY) {
                 when (url.host) { // e.g., postles://dismiss, postles://custom
                     "dismiss" -> processAction(InAppAction.DISMISS)
                     "custom" -> {
